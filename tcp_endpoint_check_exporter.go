@@ -2,151 +2,130 @@ package main
 
 import (
     "fmt"
-    "os"
+    "log"
     "net"
     "net/http"
-    "time"
-    "strings"
+    "os"
     "strconv"
-    "log"
+    "time"
+    "sync"
 
     "github.com/prometheus/client_golang/prometheus"
     "github.com/prometheus/client_golang/prometheus/promhttp"
     "gopkg.in/yaml.v2"
 )
 
+type Target struct {
+    Host string `yaml:"host"`
+    Port int    `yaml:"port"`
+    Env  string `yaml:"env"`
+}
+
 type Config struct {
-    Targets []struct {
-        Host string `yaml:"host"`
-        Port int    `yaml:"port"`
-        Env  string `yaml:"env,omitempty"`
-    } `yaml:"targets"`
+    Targets []Target `yaml:"targets"`
 }
 
 var (
-    connectionStatus = prometheus.NewGaugeVec(
+    tcpEndpointUp = prometheus.NewGaugeVec(
         prometheus.GaugeOpts{
-            Name: "host_port_connection_status",
-            Help: "Connection status to host:port (1 = success, 0 = failure)",
+            Name: "tcp_endpoint_up",
+            Help: "TCP endpoint connectivity status (1 for up, 0 for down)",
         },
         []string{"host", "port", "env"},
     )
 )
 
 func init() {
-    prometheus.MustRegister(connectionStatus)
+    prometheus.MustRegister(tcpEndpointUp)
 }
 
-func checkConnection(host string, port int) bool {
-    timeout := 5 * time.Second
-    target := fmt.Sprintf("%s:%d", host, port)
-    conn, err := net.DialTimeout("tcp", target, timeout)
+func loadConfig() []Target {
+    log.Printf("Loading configuration from /config/config.yml")
+    data, err := os.ReadFile("/config/config.yml")
     if err != nil {
-        log.Printf("Failed to connect to %s: %v", target, err)
-        return false
+        log.Printf("Warning: Could not read config file: %v. Using default target", err)
+        return []Target{{Host: "google.com", Port: 443, Env: "default"}}
     }
-    defer conn.Close()
-    log.Printf("Successfully connected to %s", target)
-    return true
+
+    var config Config
+    if err := yaml.Unmarshal(data, &config); err != nil {
+        log.Printf("Warning: Could not parse config file: %v. Using default target", err)
+        return []Target{{Host: "google.com", Port: 443, Env: "default"}}
+    }
+
+    if len(config.Targets) == 0 {
+        log.Printf("Warning: No targets found in config. Using default target")
+        return []Target{{Host: "google.com", Port: 443, Env: "default"}}
+    }
+
+    log.Printf("Loaded %d targets from configuration", len(config.Targets))
+    return config.Targets
+}
+
+func checkEndpoint(target Target) {
+    start := time.Now()
+    address := fmt.Sprintf("%s:%d", target.Host, target.Port)
+    log.Printf("Checking endpoint %s (env: %s)", address, target.Env)
+    
+    conn, err := net.DialTimeout("tcp", address, 5*time.Second)
+    duration := time.Since(start)
+    
+    if err != nil {
+        log.Printf("❌ Failed to connect to %s: %v (took %v)", address, err, duration)
+        tcpEndpointUp.WithLabelValues(target.Host, strconv.Itoa(target.Port), target.Env).Set(0)
+        return
+    }
+    
+    conn.Close()
+    log.Printf("✅ Successfully connected to %s (took %v)", address, duration)
+    tcpEndpointUp.WithLabelValues(target.Host, strconv.Itoa(target.Port), target.Env).Set(1)
 }
 
 func main() {
-    log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
-    log.Println("Starting host-port checker...")
-
-    var config Config
-
-    // Read config file from mounted location
-    data, err := os.ReadFile("/config/config.yml")
-    if (err != nil) {
-        log.Printf("Warning: Cannot find config file: %v\n", err)
-        log.Println("Falling back to default check: google.com:443")
-        config = Config{
-            Targets: []struct {
-                Host string `yaml:"host"`
-                Port int    `yaml:"port"`
-                Env  string `yaml:"env,omitempty"`
-            }{
-                {
-                    Host: "google.com",
-                    Port: 443,
-                },
-            },
-        }
-    } else {
-        log.Println("Successfully loaded config file")
-        err = yaml.Unmarshal(data, &config)
-        if err != nil {
-            log.Fatalf("Failed to parse config: %v", err)
-        }
+    log.Printf("Starting TCP Endpoint Check Exporter")
+    
+    // Get check interval from environment
+    intervalStr := os.Getenv("CHECK_INTERVAL_SECONDS")
+    interval := 30 // default interval
+    if i, err := strconv.Atoi(intervalStr); err == nil && i > 0 {
+        interval = i
     }
+    log.Printf("Check interval set to %d seconds", interval)
 
-    // Get check interval from environment variable
-    checkInterval := 30 // default 30 seconds
-    if interval := os.Getenv("CHECK_INTERVAL_SECONDS"); interval != "" {
-        if i, err := strconv.Atoi(interval); err == nil && i > 0 {
-            checkInterval = i
-        }
+    // Get metrics port from environment
+    metricsPort := os.Getenv("METRICS_PORT")
+    if metricsPort == "" {
+        metricsPort = "2112"
     }
-    log.Printf("Check interval set to %d seconds", checkInterval)
+    log.Printf("Metrics port set to %s", metricsPort)
 
-    var config Config
-
-    // Read config file from mounted location
-    data, err := os.ReadFile("/config/config.yml")
-    if (err != nil) {
-        log.Printf("Warning: Cannot find config file: %v\n", err)
-        log.Println("Falling back to default check: google.com:443")
-        config = Config{
-            Targets: []struct {
-                Host string `yaml:"host"`
-                Port int    `yaml:"port"`
-                Env  string `yaml:"env,omitempty"`
-            }{
-                {
-                    Host: "google.com",
-                    Port: 443,
-                },
-            },
-        }
-    } else {
-        log.Println("Successfully loaded config file")
-        err = yaml.Unmarshal(data, &config)
-        if err != nil {
-            log.Fatalf("Failed to parse config: %v", err)
-        }
-    }
-
-    // Get check interval from environment variable
-    checkInterval := 30 // default 30 seconds
-    if interval := os.Getenv("CHECK_INTERVAL_SECONDS"); interval != "" {
-        if i, err := strconv.Atoi(interval); err == nil && i > 0 {
-            checkInterval = i
-        }    }
-    log.Printf("Check interval set to %d seconds", checkInterval)
+    targets := loadConfig()
 
     // Start periodic checks
     go func() {
-        log.Println("Starting periodic checks...")
         for {
-            checkAllTargets(config.Targets)
-            time.Sleep(time.Duration(checkInterval) * time.Second)
+            log.Printf("Starting concurrent checks for %d targets", len(targets))
+            start := time.Now()
+            var wg sync.WaitGroup
+            for _, target := range targets {
+                wg.Add(1)
+                go func(t Target) {
+                    defer wg.Done()
+                    checkEndpoint(t)
+                }(target)
+            }
+            wg.Wait()
+            duration := time.Since(start)
+            log.Printf("Completed all checks in %v", duration)
+            time.Sleep(time.Duration(interval) * time.Second)
         }
     }()
 
-    // Get metrics port from environment variable
-    metricsPort := os.Getenv("METRICS_PORT")
-    if metricsPort == "" {
-        metricsPort = "2112" // default port
-    }
-    if !strings.HasPrefix(metricsPort, ":") {
-        metricsPort = ":" + metricsPort
-    }
-
-    log.Printf("Starting metrics server on port%s", metricsPort)
     // Expose metrics endpoint
     http.Handle("/metrics", promhttp.Handler())
-    if err := http.ListenAndServe(metricsPort, nil); err != nil {
-        log.Fatalf("Failed to start metrics server: %v", err)
+    log.Printf("Starting metrics server on :%s", metricsPort)
+    log.Printf("Metrics available at: \033[34mhttp://localhost:%s/metrics\033[0m", metricsPort)
+    if err := http.ListenAndServe(":"+metricsPort, nil); err != nil {
+        log.Fatal(err)
     }
 }

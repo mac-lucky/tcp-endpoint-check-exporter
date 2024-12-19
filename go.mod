@@ -1,4 +1,4 @@
-module host_port_checker
+module tcp_endpoint_check_exporter
 
 go 1.23.4
 
