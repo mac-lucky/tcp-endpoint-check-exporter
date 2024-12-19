@@ -1,0 +1,54 @@
+targets:
+  - host: "google.com"
+    port: 443
+    alias: "search-engine"
+  - host: "github.com"
+    port: 443
+    env: "prod"
+    alias: "social-coding"
+  - host: "microsoft.com"
+    port: 443
+    alias: "msft"
+  - host: "amazon.com"
+    port: 443
+    env: "prod"
+    alias: "amzn"
+  - host: "cloudflare.com"
+    port: 443
+    env: "test"
+  - host: "docker.com"
+    port: 443
+    env: "test"
+  - host: "gitlab.com"
+    port: 443
+    env: "test"
+  - host: "slack.com"
+    port: 443
+    env: "test"
+  - host: "npmjs.com"
+    port: 443
+    env: "test"
+  - host: "digitalocean.com"
+    port: 443
+    env: "test"
+  - host: "azure.com"
+    port: 443
+    env: "test"
+  - host: "aws.amazon.com"
+    port: 443
+    env: "test"
+  - host: "registry.hub.docker.com"
+    port: 443
+    env: "test"
+  - host: "kubernetes.io"
+    port: 443
+    env: "test"
+  - host: "pypi.org"
+    port: 443
+    env: "test"
+  - host: "rubygems.org"
+    port: 443
+    env: "test"
+  - host: "maven.org"
+    port: 443
+    env: "test"

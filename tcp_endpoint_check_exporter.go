@@ -16,9 +16,10 @@ import (
 )
 
 type Target struct {
-    Host string `yaml:"host"`
-    Port int    `yaml:"port"`
-    Env  string `yaml:"env"`
+    Host  string `yaml:"host"`
+    Port  int    `yaml:"port"`
+    Env   string `yaml:"env,omitempty"`
+    Alias string `yaml:"alias,omitempty"`
 }
 
 type Config struct {
@@ -31,7 +32,7 @@ var (
             Name: "tcp_endpoint_up",
             Help: "TCP endpoint connectivity status (1 for up, 0 for down)",
         },
-        []string{"host", "port", "env"},
+        []string{"host", "port", "env", "alias"},
     )
 )
 
@@ -44,18 +45,18 @@ func loadConfig() []Target {
     data, err := os.ReadFile("/config/config.yml")
     if err != nil {
         log.Printf("Warning: Could not read config file: %v. Using default target", err)
-        return []Target{{Host: "google.com", Port: 443, Env: "default"}}
+        return []Target{{Host: "google.com", Port: 443}}
     }
 
     var config Config
     if err := yaml.Unmarshal(data, &config); err != nil {
         log.Printf("Warning: Could not parse config file: %v. Using default target", err)
-        return []Target{{Host: "google.com", Port: 443, Env: "default"}}
+        return []Target{{Host: "google.com", Port: 443}}
     }
 
     if len(config.Targets) == 0 {
         log.Printf("Warning: No targets found in config. Using default target")
-        return []Target{{Host: "google.com", Port: 443, Env: "default"}}
+        return []Target{{Host: "google.com", Port: 443}}
     }
 
     log.Printf("Loaded %d targets from configuration", len(config.Targets))
@@ -65,20 +66,29 @@ func loadConfig() []Target {
 func checkEndpoint(target Target) {
     start := time.Now()
     address := fmt.Sprintf("%s:%d", target.Host, target.Port)
-    log.Printf("Checking endpoint %s (env: %s)", address, target.Env)
+    alias := target.Alias
+    if alias == "" {
+        alias = target.Host
+    }
+    env := target.Env
+    if env == "" {
+        env = "default"
+    }
+    
+    log.Printf("Checking endpoint %s (env: %s, alias: %s)", address, env, alias)
     
     conn, err := net.DialTimeout("tcp", address, 5*time.Second)
     duration := time.Since(start)
     
     if err != nil {
         log.Printf("❌ Failed to connect to %s: %v (took %v)", address, err, duration)
-        tcpEndpointUp.WithLabelValues(target.Host, strconv.Itoa(target.Port), target.Env).Set(0)
+        tcpEndpointUp.WithLabelValues(target.Host, strconv.Itoa(target.Port), env, alias).Set(0)
         return
     }
     
     conn.Close()
     log.Printf("✅ Successfully connected to %s (took %v)", address, duration)
-    tcpEndpointUp.WithLabelValues(target.Host, strconv.Itoa(target.Port), target.Env).Set(1)
+    tcpEndpointUp.WithLabelValues(target.Host, strconv.Itoa(target.Port), env, alias).Set(1)
 }
 
 func main() {

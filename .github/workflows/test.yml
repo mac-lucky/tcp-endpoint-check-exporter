@@ -22,10 +22,14 @@ jobs:
         targets:
           - host: "google.com"
             port: 443
-            env: "test"
+            alias: "search-engine"
           - host: "github.com"
             port: 443
             env: "test"
+            alias: "code-repo"
+          - host: "microsoft.com"
+            port: 443
+            alias: "msft"
         EOF
 
     - name: Run container
