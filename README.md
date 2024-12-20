@@ -41,6 +41,7 @@ The exporter provides the following metric:
     - `host`: Target hostname or IP
     - `port`: Target port
     - `env`: Environment label (optional)
+    - `alias`: alias for host (optional)
 
 ## Docker Usage
 1. Create a `config.yml` in the current directory. Based on Config File section
