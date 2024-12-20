@@ -3,8 +3,12 @@ name: Container Test
 on:
   push:
     branches: [ "master" ]
+    paths-ignore:
+      - '.github/workflows/**'
   pull_request:
     branches: [ "master" ]
+    paths-ignore:
+      - '.github/workflows/**'
 
 jobs:
   test:
@@ -45,6 +49,10 @@ jobs:
 
     - name: Wait for metrics
       run: sleep 15
+
+    - name: Show container logs
+      run: docker logs $(docker ps -q --filter ancestor=tcp-endpoint-check-exporter:test)
+
 
     - name: Test metrics endpoint
       run: |
