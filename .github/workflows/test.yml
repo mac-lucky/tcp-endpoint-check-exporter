@@ -30,6 +30,9 @@ jobs:
           - host: "microsoft.com"
             port: 443
             alias: "msft"
+          - host: "nonexistent.com"
+            port: 443
+            alias: "nonexistent.com"
         EOF
 
     - name: Run container
