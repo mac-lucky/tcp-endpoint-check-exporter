@@ -20,8 +20,6 @@ A Prometheus exporter that monitors TCP endpoint connectivity and exposes metric
 
 ### Config File
 
-Create a `config.yml` file in the `/config` directory:
-
 ```yaml
 targets:
   - host: "google.com"
@@ -45,13 +43,14 @@ The exporter provides the following metric:
     - `env`: Environment label (optional)
 
 ## Docker Usage
+1. Create a `config.yml` in the current directory. Based on Config File section
 
-1. Build the container:
+2. Build the container:
 ```bash
 docker build -t tcp-endpoint-check-exporter .
 ```
 
-2. Run the container:
+3. Run the container:
 ```bash
 docker run -d \
   -p 2112:2112 \
@@ -59,6 +58,17 @@ docker run -d \
   -e CHECK_INTERVAL_SECONDS=30 \
   -e METRICS_PORT=2112 \
   tcp-endpoint-check-exporter
+```
+
+There is already a pre-built image available on Docker Hub and github packages:
+
+```bash
+docker run -d \
+  -p 2112:2112 \
+  -v $(pwd)/config.yml:/config/config.yml \
+  -e CHECK_INTERVAL_SECONDS=30 \
+  -e METRICS_PORT=2112 \
+  maclucky/tcp-endpoint-check-exporter:latest
 ```
 
 ## Prometheus Configuration
@@ -78,5 +88,6 @@ scrape_configs:
 go mod init tcp-endpoint-check-exporter
 go mod tidy
 go build -o tcp_endpoint_check_exporter
+./tcp_endpoint_check_exporter
 ```
 
