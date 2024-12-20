@@ -1,4 +1,4 @@
-name: Docker Image for Kubernetes Ping Exporter
+name: Docker Image for TCP Endpoint check exporter
 
 on:
   push:
