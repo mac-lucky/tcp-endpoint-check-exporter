@@ -87,7 +87,11 @@ func checkEndpoint(target Target) {
     }
     
     conn.Close()
-    log.Printf("✅ Successfully connected to %s (took %v)", address, duration)
+    successMsg := fmt.Sprintf("✅ Successfully connected to %s (took %v)", address, duration)
+    if env != "default" || alias != target.Host {
+        successMsg = fmt.Sprintf("✅ Successfully connected to %s [env: %s, alias: %s] (took %v)", address, env, alias, duration)
+    }
+    log.Printf("%s", successMsg)
     tcpEndpointUp.WithLabelValues(target.Host, strconv.Itoa(target.Port), env, alias).Set(1)
 }
 
