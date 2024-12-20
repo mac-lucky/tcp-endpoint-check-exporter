@@ -53,6 +53,7 @@ docker build -t tcp-endpoint-check-exporter .
 3. Run the container:
 ```bash
 docker run -d \
+  --name tcp-endpoint-check-exporter \
   -p 2112:2112 \
   -v $(pwd)/config.yml:/config/config.yml \
   -e CHECK_INTERVAL_SECONDS=30 \
@@ -64,6 +65,7 @@ There is already a pre-built image available on Docker Hub and github packages:
 
 ```bash
 docker run -d \
+  --name tcp-endpoint-check-exporter \
   -p 2112:2112 \
   -v $(pwd)/config.yml:/config/config.yml \
   -e CHECK_INTERVAL_SECONDS=30 \
