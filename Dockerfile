@@ -2,19 +2,6 @@
 # Uses distroless base images for maximum security and minimal image size
 
 # Build stage - Use the official Go image for building
-# For CI: Pass GO_VERSION as build arg
-# For local: Detects Go version from go.mod automatically
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:alpine AS go-detector
-
-WORKDIR /detect
-COPY go.mod ./
-
-# Create a script that detects Go version from go.mod
-RUN GO_VERSION_FROM_MOD=$(grep "^go " go.mod | cut -d' ' -f2) && \
-    echo "Detected Go version: $GO_VERSION_FROM_MOD" && \
-    echo "$GO_VERSION_FROM_MOD" > /tmp/detected_version
-
-# Main build stage with version handling
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:${GO_VERSION:-1.23.4}-alpine AS builder
 
 ARG TARGETPLATFORM
@@ -28,66 +15,38 @@ ARG BUILD_DATE="unknown"
 
 WORKDIR /src
 
-# Copy the detected version and validate
-COPY --from=go-detector /tmp/detected_version /tmp/detected_version
-COPY --from=go-detector /detect/go.mod ./go.mod.check
-
-# Validate Go version and provide guidance
-RUN DETECTED=$(cat /tmp/detected_version) && \
-    CURRENT_GO=$(go version | cut -d' ' -f3 | sed 's/go//') && \
+# Install dependencies, copy files, and show version info in one layer
+RUN apk add --no-cache ca-certificates git gcc musl-dev
+COPY go.mod go.sum ./
+RUN CURRENT_GO=$(go version | cut -d' ' -f3 | sed 's/go//') && \
+    DETECTED_GO=$(grep "^go " go.mod | cut -d' ' -f2) && \
     echo "Building with Go $CURRENT_GO" && \
-    echo "Project requires Go $DETECTED" && \
+    echo "Project requires Go $DETECTED_GO" && \
     if [ -n "$GO_VERSION" ]; then \
       echo "Using CI-provided Go version: $GO_VERSION"; \
     else \
-      echo "Using default Go version. For exact version match, build with: docker build --build-arg GO_VERSION=$DETECTED ."; \
-    fi
+      echo "For exact version match: docker build --build-arg GO_VERSION=$DETECTED_GO ."; \
+    fi && \
+    go mod download && go mod verify
 
-# Install build dependencies
-RUN apk add --no-cache \
-    ca-certificates \
-    git \
-    gcc \
-    musl-dev
-
-# Copy go mod files first for better layer caching
-COPY go.mod go.sum ./
-
-# Download dependencies with verification
-RUN go mod download && go mod verify
-
-# Copy source code
+# Copy source and build in one layer
 COPY . .
-
-# Build the application with optimizations
-RUN CGO_ENABLED=0 \
-    GOOS=${TARGETOS} \
-    GOARCH=${TARGETARCH} \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build \
     -ldflags="-w -s -X main.version=${VERSION} -X main.commitSHA=${COMMIT_SHA} -X main.buildDate=${BUILD_DATE}" \
     -a -installsuffix cgo \
-    -o /app/tcp_endpoint_check_exporter
-
-# Verify the binary works
-RUN /app/tcp_endpoint_check_exporter --help || echo "Binary built successfully"
+    -o /app/tcp_endpoint_check_exporter && \
+    echo "Binary built successfully"
 
 # Runtime stage - Use Google's distroless image for maximum security
 FROM --platform=${TARGETPLATFORM:-linux/amd64} gcr.io/distroless/static-debian12:nonroot AS runner
 
-# Import ca-certificates from builder
+# Copy ca-certificates and application binary in one layer
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-# Copy the application binary
 COPY --from=builder /app/tcp_endpoint_check_exporter /app/tcp_endpoint_check_exporter
 
-# Create necessary directories
 USER 65532:65532
-
-# Set environment variables
-ENV METRICS_PORT=2112 \
-    CHECK_INTERVAL_SECONDS=30
-
-# Expose the metrics port
+ENV METRICS_PORT=2112 CHECK_INTERVAL_SECONDS=30
 EXPOSE ${METRICS_PORT}
 
 # Add labels for better maintainability
@@ -105,9 +64,13 @@ ENTRYPOINT ["/app/tcp_endpoint_check_exporter"]
 
 # Development stage - includes shell and additional tools for debugging
 FROM --platform=${TARGETPLATFORM:-linux/amd64} alpine:3.19 AS development
-RUN apk add --no-cache ca-certificates curl wget
+
+# Install tools, copy binary, create user in one layer
+RUN apk add --no-cache ca-certificates curl wget && \
+    addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
 COPY --from=builder /app/tcp_endpoint_check_exporter /app/tcp_endpoint_check_exporter
-RUN addgroup -g 65532 -S nonroot && adduser -u 65532 -S nonroot -G nonroot
+
 USER 65532:65532
 ENV METRICS_PORT=2112 CHECK_INTERVAL_SECONDS=30
 EXPOSE ${METRICS_PORT}

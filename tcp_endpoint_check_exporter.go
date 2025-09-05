@@ -96,6 +96,7 @@ func checkEndpoint(target Target) {
 }
 
 func main() {
+    // TCP Endpoint Check Exporter - monitors endpoint connectivity and reports detailed metrics
     log.Printf("Starting TCP Endpoint Check Exporter")
     
     // Get check interval from environment
