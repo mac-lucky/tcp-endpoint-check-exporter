@@ -44,11 +44,21 @@ The exporter provides the following metric:
     - `alias`: alias for host (optional)
 
 ## Docker Usage
+
+### Local Build
+
 1. Create a `config.yml` in the current directory. Based on Config File section
 
 2. Build the container:
 ```bash
+# Quick build (uses default Go version)
 docker build -t tcp-endpoint-check-exporter .
+
+# Exact build (uses Go version from go.mod - recommended)
+docker build --build-arg GO_VERSION=$(grep "^go " go.mod | cut -d' ' -f2) -t tcp-endpoint-check-exporter .
+
+# Development build (includes debugging tools)
+docker build --target development -t tcp-endpoint-check-exporter:dev .
 ```
 
 3. Run the container:
@@ -62,9 +72,12 @@ docker run -d \
   tcp-endpoint-check-exporter
 ```
 
-There is already a pre-built image available on Docker Hub and github packages:
+### Pre-built Images
+
+There are pre-built images available on Docker Hub and GitHub Container Registry:
 
 ```bash
+# Docker Hub
 docker run -d \
   --name tcp-endpoint-check-exporter \
   -p 2112:2112 \
@@ -72,6 +85,15 @@ docker run -d \
   -e CHECK_INTERVAL_SECONDS=30 \
   -e METRICS_PORT=2112 \
   maclucky/tcp-endpoint-check-exporter:latest
+
+# GitHub Container Registry
+docker run -d \
+  --name tcp-endpoint-check-exporter \
+  -p 2112:2112 \
+  -v $(pwd)/config.yml:/config/config.yml \
+  -e CHECK_INTERVAL_SECONDS=30 \
+  -e METRICS_PORT=2112 \
+  ghcr.io/mac-lucky/tcp-endpoint-check-exporter:latest
 ```
 
 ## Prometheus Configuration
@@ -87,10 +109,45 @@ scrape_configs:
 
 ## Building from Source
 
+### Go Binary
 ```bash
-go mod init tcp-endpoint-check-exporter
-go mod tidy
+go mod download
 go build -o tcp_endpoint_check_exporter
 ./tcp_endpoint_check_exporter
+```
+
+### Multi-platform Docker Build
+```bash
+# Build for multiple architectures
+docker buildx build --platform linux/amd64,linux/arm64 -t tcp-endpoint-check-exporter .
+```
+
+## Development
+
+### Quick Development Workflow
+```bash
+# 1. Build and test locally
+docker build --build-arg GO_VERSION=$(grep "^go " go.mod | cut -d' ' -f2) -t tcp-endpoint-check-exporter .
+
+# 2. Run with test config
+docker run -d -p 2112:2112 -v $(pwd)/config.yml:/config/config.yml tcp-endpoint-check-exporter
+
+# 3. Check metrics
+curl http://localhost:2112/metrics
+
+# 4. View logs
+docker logs tcp-endpoint-check-exporter
+
+# 5. Clean up
+docker stop tcp-endpoint-check-exporter && docker rm tcp-endpoint-check-exporter
+```
+
+### Development Container
+```bash
+# Build development image with debugging tools
+docker build --target development -t tcp-endpoint-check-exporter:dev .
+
+# Run with shell access
+docker run -it --rm -p 2112:2112 -v $(pwd):/workspace tcp-endpoint-check-exporter:dev /bin/sh
 ```
 
