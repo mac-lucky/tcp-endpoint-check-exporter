@@ -39,7 +39,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     echo "Binary built successfully"
 
 # Runtime stage - Use Google's distroless image for maximum security
-FROM --platform=${TARGETPLATFORM:-linux/amd64} gcr.io/distroless/static-debian12:nonroot AS runner
+FROM gcr.io/distroless/static-debian12:nonroot AS runner
 
 # Copy ca-certificates and application binary in one layer
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
@@ -63,7 +63,7 @@ LABEL org.opencontainers.image.title="TCP Endpoint Check Exporter" \
 ENTRYPOINT ["/app/tcp_endpoint_check_exporter"]
 
 # Development stage - includes shell and additional tools for debugging
-FROM --platform=${TARGETPLATFORM:-linux/amd64} alpine:3.19 AS development
+FROM alpine:3.19 AS development
 
 # Install tools, copy binary, create user in one layer
 RUN apk add --no-cache ca-certificates curl wget && \
