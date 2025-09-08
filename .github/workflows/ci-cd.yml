@@ -19,44 +19,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  ci-cd:
-    name: CI/CD Pipeline
-    uses: mac-lucky/actions-shared-workflows/.github/workflows/go-cicd-reusable.yml@master
-    permissions:
-      contents: read
-      packages: write
-      security-events: write
-    with:
-      # Required parameters
-      app_name: "tcp-endpoint-check-exporter"
-      dockerhub_image: "maclucky/tcp-endpoint-check-exporter"
-      ghcr_image: "ghcr.io/mac-lucky/tcp-endpoint-check-exporter"
-      
-      # Build configuration
-      dockerfile_path: "./Dockerfile"
-      build_context: "."
-      
-      # Test configuration
-      enable_container_tests: false
-      enable_kubernetes_tests: false
-      
-      # Security and quality
-      enable_security_scan: true
-      enable_sbom: true
-      
-      # Deployment
-      enable_auto_version: true
-      push_on_main: true
-    secrets:
-      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
-
   # Custom container integration tests specific to tcp-endpoint-check-exporter
   tcp-endpoint-check-exporter-test:
     name: CI/CD Pipeline / Container Integration Test
     runs-on: ubuntu-latest
-    needs: ci-cd
-    if: ${{ needs.ci-cd.result == 'success' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -81,7 +47,7 @@ jobs:
             - host: "google.com"
               port: 443
               alias: "google"
-            - host: "github.com"
+            - host: "github.com" 
               port: 443
               alias: "github"
             - host: "httpbin.org"
@@ -117,3 +83,37 @@ jobs:
         run: |
           docker stop test-container || true
           docker rm test-container || true
+
+  # Run CI/CD after tests pass
+  ci-cd:
+    name: CI/CD Pipeline
+    needs: tcp-endpoint-check-exporter-test
+    uses: mac-lucky/actions-shared-workflows/.github/workflows/go-cicd-reusable.yml@master
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    with:
+      # Required parameters
+      app_name: "tcp-endpoint-check-exporter"
+      dockerhub_image: "maclucky/tcp-endpoint-check-exporter"
+      ghcr_image: "ghcr.io/mac-lucky/tcp-endpoint-check-exporter"
+      
+      # Build configuration
+      dockerfile_path: "./Dockerfile"
+      build_context: "."
+      
+      # Test configuration
+      enable_container_tests: false
+      enable_kubernetes_tests: false
+      
+      # Security and quality
+      enable_security_scan: true
+      enable_sbom: true
+      
+      # Deployment
+      enable_auto_version: true
+      push_on_main: true
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
