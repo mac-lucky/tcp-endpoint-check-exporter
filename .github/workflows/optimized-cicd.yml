@@ -1,20 +1,25 @@
 name: Optimized CI/CD - TCP Endpoint Check Exporter
 
+# Temporarily disabled while testing shared workflows
+# on:
+#   push:
+#     branches: ["master"]
+#     paths-ignore:
+#       - "*.md"
+#       - "LICENSE"
+#       - ".gitignore"
+#   pull_request:
+#     branches: ["master"]
+#     paths-ignore:
+#       - "*.md"
+#       - "LICENSE"
+#       - ".gitignore"
+#   release:
+#     types: [published]
+
+# Manual trigger only for testing
 on:
-  push:
-    branches: ["master"]
-    paths-ignore:
-      - "*.md"
-      - "LICENSE"
-      - ".gitignore"
-  pull_request:
-    branches: ["master"]
-    paths-ignore:
-      - "*.md"
-      - "LICENSE"
-      - ".gitignore"
-  release:
-    types: [published]
+  workflow_dispatch:
 
 env:
   REGISTRY_IMAGE_DOCKERHUB: maclucky/tcp-endpoint-check-exporter
