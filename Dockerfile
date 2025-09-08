@@ -63,7 +63,7 @@ LABEL org.opencontainers.image.title="TCP Endpoint Check Exporter" \
 ENTRYPOINT ["/app/tcp_endpoint_check_exporter"]
 
 # Development stage - includes shell and additional tools for debugging
-FROM alpine:3.22 AS development
+FROM alpine:3.19 AS development
 
 # Install tools, copy binary, create user in one layer
 RUN apk add --no-cache ca-certificates curl wget && \
