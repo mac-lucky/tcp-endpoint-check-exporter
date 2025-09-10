@@ -124,5 +124,5 @@ jobs:
       enable_auto_version: true
       push_on_main: true
     secrets:
-      DOCKER_HUB_USER: ${{ secrets.DOCKER_HUB_USERNAME }}
-      DOCKER_HUB_PASS: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
