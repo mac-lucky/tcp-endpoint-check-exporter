@@ -21,7 +21,7 @@ on:
 jobs:
   # Custom container integration tests specific to tcp-endpoint-check-exporter
   tcp-endpoint-check-exporter-test:
-    name: CI/CD Pipeline / Container Integration Test
+    name: Container Integration Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
