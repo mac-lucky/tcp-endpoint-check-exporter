@@ -1,5 +1,9 @@
 # TCP Endpoint Check Exporter
 
+[![Docker Pulls](https://img.shields.io/docker/pulls/maclucky/tcp-endpoint-check-exporter)](https://hub.docker.com/r/maclucky/tcp-endpoint-check-exporter)
+[![Docker Image Version](https://img.shields.io/docker/v/maclucky/tcp-endpoint-check-exporter/latest)](https://hub.docker.com/r/maclucky/tcp-endpoint-check-exporter/tags)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/mac-lucky/tcp-endpoint-check-exporter/ci-cd.yml)](https://github.com/mac-lucky/tcp-endpoint-check-exporter/actions)
+
 A Prometheus exporter that monitors TCP endpoint connectivity and exposes metrics about their availability.
 
 ## Features
