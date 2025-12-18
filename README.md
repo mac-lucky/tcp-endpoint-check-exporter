@@ -1,9 +1,7 @@
 # TCP Endpoint Check Exporter
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/maclucky/tcp-endpoint-check-exporter)](https://hub.docker.com/r/maclucky/tcp-endpoint-check-exporter)
-[![Docker Image Version](https://img.shields.io/docker/v/maclucky/tcp-endpoint-check-exporter/latest)](https://hub.docker.com/r/maclucky/tcp-endpoint-check-exporter/tags)
 [![GitHub Actions Workflow Status](https://github.com/mac-lucky/tcp-endpoint-check-exporter/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/mac-lucky/tcp-endpoint-check-exporter/actions/workflows/ci-cd.yml)
-[![Platform](https://img.shields.io/badge/platform-amd64%20%7C%20arm64-blue)](https://hub.docker.com/r/maclucky/tcp-endpoint-check-exporter/tags)
+[![Platform](https://img.shields.io/badge/platform-amd64%20%7C%20arm64-blue)](https://github.com/mac-lucky/tcp-endpoint-check-exporter/pkgs/container/tcp-endpoint-check-exporter)
 
 A Prometheus exporter that monitors TCP endpoint connectivity and exposes metrics about their availability.
 
@@ -79,19 +77,9 @@ docker run -d \
 
 ### Pre-built Images
 
-There are pre-built images available on Docker Hub and GitHub Container Registry:
+Pre-built images are available on GitHub Container Registry:
 
 ```bash
-# Docker Hub
-docker run -d \
-  --name tcp-endpoint-check-exporter \
-  -p 2112:2112 \
-  -v $(pwd)/config.yml:/config/config.yml \
-  -e CHECK_INTERVAL_SECONDS=30 \
-  -e METRICS_PORT=2112 \
-  maclucky/tcp-endpoint-check-exporter:latest
-
-# GitHub Container Registry
 docker run -d \
   --name tcp-endpoint-check-exporter \
   -p 2112:2112 \
