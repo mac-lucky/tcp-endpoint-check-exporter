@@ -2,7 +2,8 @@
 # Uses distroless base images for maximum security and minimal image size
 
 # Build stage - Use the official Go image for building
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:${GO_VERSION:-1.24.0}-alpine AS builder
+ARG GO_VERSION=1.24.0
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:${GO_VERSION}-alpine AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
