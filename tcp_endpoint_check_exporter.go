@@ -65,7 +65,7 @@ func loadConfig() []Target {
 
 func checkEndpoint(target Target) {
     start := time.Now()
-    address := fmt.Sprintf("%s:%d", target.Host, target.Port)
+    address := net.JoinHostPort(target.Host, strconv.Itoa(target.Port))
     alias := target.Alias
     if alias == "" {
         alias = target.Host
