@@ -86,7 +86,7 @@ func checkEndpoint(target Target) {
         return
     }
     
-    conn.Close()
+    _ = conn.Close()
     successMsg := fmt.Sprintf("✅ Successfully connected to %s (took %v)", address, duration)
     if env != "default" || alias != target.Host {
         successMsg = fmt.Sprintf("✅ Successfully connected to %s [env: %s, alias: %s] (took %v)", address, env, alias, duration)
@@ -112,7 +112,7 @@ func main() {
     if metricsPort == "" {
         metricsPort = "2112"
     }
-    log.Printf("Metrics port set to %s", metricsPort)
+    log.Printf("Metrics port set to %s", metricsPort) // #nosec G706 -- metricsPort is from env var with default fallback
 
     targets := loadConfig()
 
@@ -138,9 +138,13 @@ func main() {
 
     // Expose metrics endpoint
     http.Handle("/metrics", promhttp.Handler())
-    log.Printf("Starting metrics server on :%s", metricsPort)
-    log.Printf("Metrics available at: \033[34mhttp://localhost:%s/metrics\033[0m", metricsPort)
-    if err := http.ListenAndServe(":"+metricsPort, nil); err != nil {
+    log.Printf("Starting metrics server on :%s", metricsPort) // #nosec G706 -- metricsPort is from env var with default fallback
+    log.Printf("Metrics available at: \033[34mhttp://localhost:%s/metrics\033[0m", metricsPort) // #nosec G706 -- metricsPort is from env var with default fallback
+    server := &http.Server{
+        Addr:              ":" + metricsPort,
+        ReadHeaderTimeout: 5 * time.Second,
+    }
+    if err := server.ListenAndServe(); err != nil {
         log.Fatal(err)
     }
 }
